@@ -7,7 +7,7 @@ Dive into a frantic arcade world where time is against you! Hunt flying chickens
 
 ---
 
-## 🎮 How to Play Love Me Not
+## 🎮 How to Play
 
 1. **Download the project**
    - Click the green **"Code" → "Download ZIP"**, then extract it anywhere on your PC
