@@ -30,7 +30,11 @@ Players face the eternal question: **will you spare the chickens, or let them bu
 ## Gameplay
 
 The gameplay focuses on precision, timing, and resource management.  
-Chickens fly across the screen in unpredictable patterns, and the player must shoot them before time runs out.  
+Chickens fly across the screen in unpredictable patterns, and the player must shoot them before time runs out.
+
+| <img src="https://github.com/PeTrolejTV/Untitled-MoorHuhn-Game/blob/main/UntitledMoorHuhnGame/gallery/gameplay1.png" width="666"> | <img src="https://github.com/PeTrolejTV/Untitled-MoorHuhn-Game/blob/main/UntitledMoorHuhnGame/gallery/gameplay2.png" width="666"> |
+|:--:|:--:|
+| *Figure 2 Preview of the Game play* | *Figure 3 Preview of the Game play* |
 
 ### Core Mechanics
 
@@ -39,6 +43,12 @@ Chickens fly across the screen in unpredictable patterns, and the player must sh
 - Manage your **ammo** and reload efficiently.  
 - The **timer** constantly counts down — when it hits zero, the hunt is over.  
 - Difficulty increases dynamically based on your performance.
+
+<p align="center">
+  <img src="https://github.com/PeTrolejTV/Untitled-MoorHuhn-Game/blob/main/UntitledMoorHuhnGame/gallery/gameplay3.png" alt="Game play screen" width="65%">
+      <br>
+   <em>Figure 4 Preview of the Game play</em>
+</p>
 
 ---
 
@@ -62,6 +72,10 @@ Each provides a lasting bonus for the remainder of the game, enhancing your chan
 - **Instant Reload:** Removes reload delay entirely, allowing continuous fire.  
 - **+30 Seconds:** Extends the round timer by 30 seconds.  
 - **+1 Max Ammo:** Increases your total ammo capacity (default 4 → maximum 10).  
+
+| <img src="https://github.com/PeTrolejTV/Untitled-MoorHuhn-Game/blob/main/UntitledMoorHuhnGame/maven/src/main/resources/assets/powerup/active/Untitled_powerup_active3.png" width="150"> | <img src="https://github.com/PeTrolejTV/Untitled-MoorHuhn-Game/blob/main/UntitledMoorHuhnGame/maven/src/main/resources/assets/powerup/active/Untitled_powerup_active2.png" width="150"> | <img src="https://github.com/PeTrolejTV/Untitled-MoorHuhn-Game/blob/main/UntitledMoorHuhnGame/maven/src/main/resources/assets/powerup/destroyed/Untitled_powerup_destroyed2.png" width="150"> | <img src="https://github.com/PeTrolejTV/Untitled-MoorHuhn-Game/blob/main/UntitledMoorHuhnGame/maven/src/main/resources/assets/powerup/destroyed/Untitled_powerup_destroyed1.png" width="150"> |
+|:--:|:--:|:--:|:--:|
+| *Figure 5 Power Up Active* | *Figure 6 Power Up Active* | *Figure 7 Power Up Destroyed* | *Figure 8 Power Up Destroyed* |
 
 ---
 
@@ -96,11 +110,10 @@ All of the visuals in Untitled MoorHuhn Game were hand-painted by me using a mou
 
 Animations are over-the-top, with chickens flapping wildly, smoke trails puffing, and comical burn effects, all designed to make the chaos fun, chaotic, and visually entertaining. Every frame celebrates the lighthearted, absurd spirit of the game.
 
-### Placeholder Images
 <p align="center">
-  <img src="gallery/gameplay_1.png" alt="Gameplay Screenshot" width="65%">
-  <img src="gallery/gameplay_2.png" alt="Gameplay Screenshot" width="65%">
-  <img src="gallery/gameplay_3.png" alt="Gameplay Screenshot" width="65%">
+  <img src="https://github.com/PeTrolejTV/Untitled-MoorHuhn-Game/blob/main/UntitledMoorHuhnGame/gallery/MainMenuPreview.png" alt="Main Menu Screen" width="65%">
+      <br>
+   <em>Figure 9 Preview of the Main Menu</em>
 </p>
 
 ---
