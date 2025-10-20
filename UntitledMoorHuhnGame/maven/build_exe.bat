@@ -22,52 +22,63 @@ REM Absolute path to JRE for Launch4j
 set ABS_JRE_PATH=%CD%\%BUNDLED_JRE%\%EXTRACTED_JDK_FOLDER%
 if "%ABS_JRE_PATH:~-1%"=="\" set ABS_JRE_PATH=%ABS_JRE_PATH:~0,-1%
 
-REM --- CHECK CURL ---
+REM --- CHECK CURL OR FALLBACK ---
 where curl >nul 2>nul
 if errorlevel 1 (
-    echo curl not found! Please install curl or ensure it is in PATH.
-    pause
-    exit /b
+    echo curl not found, using PowerShell fallback for downloads...
+    set "DL_CMD=powershell -Command Invoke-WebRequest -Uri"
+    set "DL_OUT=-OutFile"
+) else (
+    set "DL_CMD=curl -L -o"
+    set "DL_OUT="
 )
 
 REM --- MAVEN CHECK / AUTO-INSTALL ---
 where mvn >nul 2>nul
 if errorlevel 1 (
     echo Maven not found!
-    echo Downloading Apache Maven 3.9.11...
+    set "MAVEN_VERSION=3.9.11"
+    set "MAVEN_DIR=%CD%\tools\maven"
+    set "MAVEN_ZIP=%CD%\apache-maven-%MAVEN_VERSION%-bin.zip"
+    set "MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
 
     if not exist tools mkdir tools
 
-    REM Use delayed expansion to avoid empty variables inside IF block
-    setlocal enabledelayedexpansion
-    set "MAVEN_VERSION=3.9.11"
-    set "MAVEN_FILE=apache-maven-!MAVEN_VERSION!-bin.zip"
-    set "MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/!MAVEN_VERSION!/binaries/!MAVEN_FILE!"
+    echo Downloading Maven...
+    if defined DL_OUT (
+        powershell -Command "Invoke-WebRequest -Uri '%MAVEN_URL%' -OutFile '%MAVEN_ZIP%'"
+    ) else (
+        curl -L -o "%MAVEN_ZIP%" "%MAVEN_URL%"
+    )
 
-    echo Running: curl -L -o "!MAVEN_FILE!" "!MAVEN_URL!"
-    curl -L -o "!MAVEN_FILE!" "!MAVEN_URL!"
     if errorlevel 1 (
         echo Failed to download Maven from main mirror. Trying backup...
-        set "MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/!MAVEN_VERSION!/binaries/!MAVEN_FILE!"
-        curl -L -o "!MAVEN_FILE!" "!MAVEN_URL!"
+        set "MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
+        if defined DL_OUT (
+            powershell -Command "Invoke-WebRequest -Uri '%MAVEN_URL%' -OutFile '%MAVEN_ZIP%'"
+        ) else (
+            curl -L -o "%MAVEN_ZIP%" "%MAVEN_URL%"
+        )
         if errorlevel 1 (
             echo Still failed to download Maven.
-            endlocal
             pause
             exit /b
         )
     )
 
     echo Extracting Maven...
-    powershell -Command "Expand-Archive -LiteralPath '!MAVEN_FILE!' -DestinationPath 'tools' -Force"
+    powershell -Command "Expand-Archive -LiteralPath '%MAVEN_ZIP%' -DestinationPath 'tools' -Force"
 
-    del "!MAVEN_FILE!"
-    rename "tools\apache-maven-!MAVEN_VERSION!" "maven"
+    if not exist "tools\apache-maven-%MAVEN_VERSION%\bin\mvn.cmd" (
+        echo Maven extraction failed!
+        pause
+        exit /b
+    )
 
-    endlocal
+    del "%MAVEN_ZIP%"
+    rename "tools\apache-maven-%MAVEN_VERSION%" "maven"
     set "MAVEN_HOME=%CD%\tools\maven"
     set "PATH=%MAVEN_HOME%\bin;%PATH%"
-
     echo Maven installed locally in: %MAVEN_HOME%
 ) else (
     echo Maven found in PATH.
@@ -83,10 +94,18 @@ REM --- DOWNLOAD JDK + JAVAFX ---
 if not exist "%BUNDLED_JRE%" mkdir "%BUNDLED_JRE%"
 
 echo Downloading JDK...
-curl -L -o "temurin-jdk.zip" "https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_windows-x64_bin.zip"
+if defined DL_OUT (
+    powershell -Command "Invoke-WebRequest -Uri 'https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_windows-x64_bin.zip' -OutFile 'temurin-jdk.zip'"
+) else (
+    curl -L -o "temurin-jdk.zip" "https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_windows-x64_bin.zip"
+)
 
 echo Downloading JavaFX SDK...
-curl -L -o "javafx-sdk.zip" "https://download2.gluonhq.com/openjfx/21/openjfx-21_windows-x64_bin-sdk.zip"
+if defined DL_OUT (
+    powershell -Command "Invoke-WebRequest -Uri 'https://download2.gluonhq.com/openjfx/21/openjfx-21_windows-x64_bin-sdk.zip' -OutFile 'javafx-sdk.zip'"
+) else (
+    curl -L -o "javafx-sdk.zip" "https://download2.gluonhq.com/openjfx/21/openjfx-21_windows-x64_bin-sdk.zip"
+)
 
 echo Extracting JDK...
 powershell -Command "Expand-Archive -LiteralPath 'temurin-jdk.zip' -DestinationPath '%BUNDLED_JRE%' -Force"
@@ -121,7 +140,12 @@ if not exist "%LAUNCH4J_EXE%" (
     echo Launch4j not found. Downloading ZIP...
     if not exist "%LAUNCH4J_DIR%" mkdir "%LAUNCH4J_DIR%"
 
-    curl -L -o "launch4j.zip" "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
+    if defined DL_OUT (
+        powershell -Command "Invoke-WebRequest -Uri 'https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download' -OutFile 'launch4j.zip'"
+    ) else (
+        curl -L -o "launch4j.zip" "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
+    )
+
     powershell -Command "Expand-Archive -LiteralPath 'launch4j.zip' -DestinationPath '%LAUNCH4J_DIR%' -Force"
 
     if exist "%LAUNCH4J_DIR%\launch4j-3.50" (
@@ -188,6 +212,7 @@ echo Only EXE and JRE remain, target cleaned!
 echo File created in: %TARGET_DIR%\%OUTPUT_NAME%.exe
 echo ===========================================
 pause
+
 
 
 
