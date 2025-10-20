@@ -38,30 +38,33 @@ if errorlevel 1 (
 
     if not exist tools mkdir tools
 
-    set MAVEN_VERSION=3.9.11
-    set MAVEN_BASE=https://dlcdn.apache.org/maven/maven-3
-    set MAVEN_FILE=apache-maven-%MAVEN_VERSION%-bin.zip
-    set MAVEN_URL=%MAVEN_BASE%/%MAVEN_VERSION%/binaries/%MAVEN_FILE%
+    REM Use delayed expansion to avoid empty variables inside IF block
+    setlocal enabledelayedexpansion
+    set "MAVEN_VERSION=3.9.11"
+    set "MAVEN_FILE=apache-maven-!MAVEN_VERSION!-bin.zip"
+    set "MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/!MAVEN_VERSION!/binaries/!MAVEN_FILE!"
 
-    echo Running: curl -L -o "%MAVEN_FILE%" "%MAVEN_URL%"
-    curl -L -o "%MAVEN_FILE%" "%MAVEN_URL%"
+    echo Running: curl -L -o "!MAVEN_FILE!" "!MAVEN_URL!"
+    curl -L -o "!MAVEN_FILE!" "!MAVEN_URL!"
     if errorlevel 1 (
         echo Failed to download Maven from main mirror. Trying backup...
-        set MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/%MAVEN_VERSION%/binaries/%MAVEN_FILE%
-        curl -L -o "%MAVEN_FILE%" "%MAVEN_URL%"
+        set "MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/!MAVEN_VERSION!/binaries/!MAVEN_FILE!"
+        curl -L -o "!MAVEN_FILE!" "!MAVEN_URL!"
         if errorlevel 1 (
             echo Still failed to download Maven.
+            endlocal
             pause
             exit /b
         )
     )
 
     echo Extracting Maven...
-    powershell -Command "Expand-Archive -LiteralPath '%MAVEN_FILE%' -DestinationPath 'tools' -Force"
+    powershell -Command "Expand-Archive -LiteralPath '!MAVEN_FILE!' -DestinationPath 'tools' -Force"
 
-    del "%MAVEN_FILE%"
-    rename "tools\apache-maven-%MAVEN_VERSION%" "maven"
+    del "!MAVEN_FILE!"
+    rename "tools\apache-maven-!MAVEN_VERSION!" "maven"
 
+    endlocal
     set "MAVEN_HOME=%CD%\tools\maven"
     set "PATH=%MAVEN_HOME%\bin;%PATH%"
 
@@ -185,5 +188,6 @@ echo Only EXE and JRE remain, target cleaned!
 echo File created in: %TARGET_DIR%\%OUTPUT_NAME%.exe
 echo ===========================================
 pause
+
 
 
