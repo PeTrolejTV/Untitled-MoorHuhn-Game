@@ -37,15 +37,22 @@ REM --- MAVEN CHECK / AUTO-INSTALL ---
 where mvn >nul 2>nul
 if errorlevel 1 (
     echo Maven not found!
-    echo Downloading Apache Maven 3.9.9...
+    echo Downloading Apache Maven 3.9.11...
 
-    set MAVEN_VERSION=3.9.9
-    set MAVEN_DIR=tools\maven
-    set MAVEN_URL=https://downloads.apache.org/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip
+    set "MAVEN_VERSION=3.9.11"
+    set "MAVEN_DIR=tools\maven"
+    set "MAVEN_URL=https://downloads.apache.org/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
 
     if not exist tools mkdir tools
 
-    %CURL% "%MAVEN_DIR%.zip" %CURL_OUT% "%MAVEN_URL%"
+    if defined CURL_OUT (
+        REM PowerShell fallback mode
+        powershell -Command "Invoke-WebRequest -Uri '%MAVEN_URL%' -OutFile '%MAVEN_DIR%.zip'"
+    ) else (
+        REM curl available
+        %CURL% "%MAVEN_DIR%.zip" "%MAVEN_URL%"
+    )
+
     if errorlevel 1 (
         echo Failed to download Maven.
         pause
@@ -65,6 +72,7 @@ if errorlevel 1 (
 ) else (
     echo Maven found in PATH.
 )
+
 
 REM --- REMOVE OLD BUNDLED JRE ---
 if exist "%BUNDLED_JRE%" (
@@ -181,3 +189,4 @@ echo Only EXE and JRE remain, target cleaned!
 echo File created in: %TARGET_DIR%\%OUTPUT_NAME%.exe
 echo ===========================================
 pause
+
