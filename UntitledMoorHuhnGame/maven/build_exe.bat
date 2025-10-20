@@ -20,15 +20,50 @@ set TARGET_DIR=target
 
 REM Absolute path to JRE for Launch4j
 set ABS_JRE_PATH=%CD%\%BUNDLED_JRE%\%EXTRACTED_JDK_FOLDER%
-:: remove trailing backslash if present
 if "%ABS_JRE_PATH:~-1%"=="\" set ABS_JRE_PATH=%ABS_JRE_PATH:~0,-1%
 
-REM --- MAVEN CHECK ---
+REM --- CHECK OR FALLBACK FOR CURL ---
+where curl >nul 2>nul
+if errorlevel 1 (
+    echo curl not found. Using PowerShell as fallback for downloads.
+    set "CURL=powershell -Command Invoke-WebRequest -Uri"
+    set "CURL_OUT=-OutFile"
+) else (
+    set "CURL=curl -L -o"
+    set "CURL_OUT="
+)
+
+REM --- MAVEN CHECK / AUTO-INSTALL ---
 where mvn >nul 2>nul
 if errorlevel 1 (
-    echo Maven not found! Install Maven and try again.
-    pause
-    exit /b
+    echo Maven not found!
+    echo Downloading Apache Maven 3.9.9...
+
+    set MAVEN_VERSION=3.9.9
+    set MAVEN_DIR=tools\maven
+    set MAVEN_URL=https://downloads.apache.org/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip
+
+    if not exist tools mkdir tools
+
+    %CURL% "%MAVEN_DIR%.zip" %CURL_OUT% "%MAVEN_URL%"
+    if errorlevel 1 (
+        echo Failed to download Maven.
+        pause
+        exit /b
+    )
+
+    echo Extracting Maven...
+    powershell -Command "Expand-Archive -LiteralPath '%MAVEN_DIR%.zip' -DestinationPath 'tools' -Force"
+
+    del "%MAVEN_DIR%.zip"
+    rename "tools\apache-maven-%MAVEN_VERSION%" "maven"
+
+    set "MAVEN_HOME=%CD%\tools\maven"
+    set "PATH=%MAVEN_HOME%\bin;%PATH%"
+
+    echo Maven installed locally in: %MAVEN_HOME%
+) else (
+    echo Maven found in PATH.
 )
 
 REM --- REMOVE OLD BUNDLED JRE ---
@@ -41,10 +76,10 @@ REM --- DOWNLOAD JDK + JAVAFX ---
 if not exist "%BUNDLED_JRE%" mkdir "%BUNDLED_JRE%"
 
 echo Downloading JDK...
-curl -L -o temurin-jdk.zip "https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_windows-x64_bin.zip"
+%CURL% temurin-jdk.zip %CURL_OUT% "https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_windows-x64_bin.zip"
 
 echo Downloading JavaFX SDK...
-curl -L -o javafx-sdk.zip "https://download2.gluonhq.com/openjfx/21/openjfx-21_windows-x64_bin-sdk.zip"
+%CURL% javafx-sdk.zip %CURL_OUT% "https://download2.gluonhq.com/openjfx/21/openjfx-21_windows-x64_bin-sdk.zip"
 
 echo Extracting JDK...
 powershell -Command "Expand-Archive -LiteralPath 'temurin-jdk.zip' -DestinationPath '%BUNDLED_JRE%' -Force"
@@ -79,7 +114,7 @@ if not exist "%LAUNCH4J_EXE%" (
     echo Launch4j not found. Downloading ZIP...
     if not exist "%LAUNCH4J_DIR%" mkdir "%LAUNCH4J_DIR%"
 
-    curl -L -o launch4j.zip "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
+    %CURL% launch4j.zip %CURL_OUT% "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
     powershell -Command "Expand-Archive -LiteralPath 'launch4j.zip' -DestinationPath '%LAUNCH4J_DIR%' -Force"
 
     if exist "%LAUNCH4J_DIR%\launch4j-3.50" (
@@ -129,13 +164,9 @@ if errorlevel 1 (
 REM --- CLEAN UP TEMP BUILD FILES ---
 echo Cleaning up temporary files...
 
-REM Remove Launch4j folder
 if exist "%LAUNCH4J_DIR%" rmdir /s /q "%LAUNCH4J_DIR%"
-
-REM Remove Launch4j config XML
 if exist "%L4J_CONFIG%" del /f "%L4J_CONFIG%"
 
-REM Remove everything inside target except the EXE
 for /f "delims=" %%F in ('dir "%TARGET_DIR%" /b /a') do (
     if /i not "%%F"=="%OUTPUT_NAME%.exe" (
         rmdir /s /q "%TARGET_DIR%\%%F" 2>nul
