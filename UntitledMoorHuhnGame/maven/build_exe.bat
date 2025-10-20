@@ -22,15 +22,12 @@ REM Absolute path to JRE for Launch4j
 set ABS_JRE_PATH=%CD%\%BUNDLED_JRE%\%EXTRACTED_JDK_FOLDER%
 if "%ABS_JRE_PATH:~-1%"=="\" set ABS_JRE_PATH=%ABS_JRE_PATH:~0,-1%
 
-REM --- CHECK OR FALLBACK FOR CURL ---
+REM --- CHECK CURL ---
 where curl >nul 2>nul
 if errorlevel 1 (
-    echo curl not found. Using PowerShell as fallback for downloads.
-    set "CURL=powershell -Command Invoke-WebRequest -Uri"
-    set "CURL_OUT=-OutFile"
-) else (
-    set "CURL=curl -L -o"
-    set "CURL_OUT="
+    echo curl not found! Please install curl or ensure it is in PATH.
+    pause
+    exit /b
 )
 
 REM --- MAVEN CHECK / AUTO-INSTALL ---
@@ -45,14 +42,7 @@ if errorlevel 1 (
 
     if not exist tools mkdir tools
 
-    if defined CURL_OUT (
-        REM PowerShell fallback mode
-        powershell -Command "Invoke-WebRequest -Uri '%MAVEN_URL%' -OutFile '%MAVEN_DIR%.zip'"
-    ) else (
-        REM curl available
-        %CURL% "%MAVEN_DIR%.zip" "%MAVEN_URL%"
-    )
-
+    curl -L -o "%MAVEN_DIR%.zip" "%MAVEN_URL%"
     if errorlevel 1 (
         echo Failed to download Maven.
         pause
@@ -73,7 +63,6 @@ if errorlevel 1 (
     echo Maven found in PATH.
 )
 
-
 REM --- REMOVE OLD BUNDLED JRE ---
 if exist "%BUNDLED_JRE%" (
     echo Removing previous bundled JRE folder...
@@ -84,10 +73,10 @@ REM --- DOWNLOAD JDK + JAVAFX ---
 if not exist "%BUNDLED_JRE%" mkdir "%BUNDLED_JRE%"
 
 echo Downloading JDK...
-%CURL% temurin-jdk.zip %CURL_OUT% "https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_windows-x64_bin.zip"
+curl -L -o "temurin-jdk.zip" "https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_windows-x64_bin.zip"
 
 echo Downloading JavaFX SDK...
-%CURL% javafx-sdk.zip %CURL_OUT% "https://download2.gluonhq.com/openjfx/21/openjfx-21_windows-x64_bin-sdk.zip"
+curl -L -o "javafx-sdk.zip" "https://download2.gluonhq.com/openjfx/21/openjfx-21_windows-x64_bin-sdk.zip"
 
 echo Extracting JDK...
 powershell -Command "Expand-Archive -LiteralPath 'temurin-jdk.zip' -DestinationPath '%BUNDLED_JRE%' -Force"
@@ -122,7 +111,7 @@ if not exist "%LAUNCH4J_EXE%" (
     echo Launch4j not found. Downloading ZIP...
     if not exist "%LAUNCH4J_DIR%" mkdir "%LAUNCH4J_DIR%"
 
-    %CURL% launch4j.zip %CURL_OUT% "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
+    curl -L -o "launch4j.zip" "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
     powershell -Command "Expand-Archive -LiteralPath 'launch4j.zip' -DestinationPath '%LAUNCH4J_DIR%' -Force"
 
     if exist "%LAUNCH4J_DIR%\launch4j-3.50" (
@@ -189,4 +178,3 @@ echo Only EXE and JRE remain, target cleaned!
 echo File created in: %TARGET_DIR%\%OUTPUT_NAME%.exe
 echo ===========================================
 pause
-
