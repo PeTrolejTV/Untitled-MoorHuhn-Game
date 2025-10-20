@@ -35,30 +35,38 @@ where mvn >nul 2>nul
 if errorlevel 1 (
     echo Maven not found!
     echo Downloading Apache Maven 3.9.11...
-
+    
     set "MAVEN_VERSION=3.9.11"
     set "MAVEN_DIR=tools\maven"
-    set "MAVEN_URL=https://downloads.apache.org/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
-
+    set "MAVEN_FILE=apache-maven-%MAVEN_VERSION%-bin.zip"
+    set "MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/%MAVEN_VERSION%/binaries/%MAVEN_FILE%"
+    
     if not exist tools mkdir tools
-
-    curl -L -o "%MAVEN_DIR%.zip" "%MAVEN_URL%"
+    
+    echo Running: curl -L -o "%MAVEN_FILE%" "%MAVEN_URL%"
+    curl -L -o "%MAVEN_FILE%" "%MAVEN_URL%"
     if errorlevel 1 (
-        echo Failed to download Maven.
-        pause
-        exit /b
+        echo Failed to download Maven from default mirror. Trying backup...
+        set "MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/%MAVEN_VERSION%/binaries/%MAVEN_FILE%"
+        curl -L -o "%MAVEN_FILE%" "%MAVEN_URL%"
+        if errorlevel 1 (
+            echo Still failed to download Maven.
+            pause
+            exit /b
+        )
     )
-
+    
     echo Extracting Maven...
-    powershell -Command "Expand-Archive -LiteralPath '%MAVEN_DIR%.zip' -DestinationPath 'tools' -Force"
-
-    del "%MAVEN_DIR%.zip"
+    powershell -Command "Expand-Archive -LiteralPath '%MAVEN_FILE%' -DestinationPath 'tools' -Force"
+    
+    del "%MAVEN_FILE%"
     rename "tools\apache-maven-%MAVEN_VERSION%" "maven"
-
+    
     set "MAVEN_HOME=%CD%\tools\maven"
     set "PATH=%MAVEN_HOME%\bin;%PATH%"
-
+    
     echo Maven installed locally in: %MAVEN_HOME%
+
 ) else (
     echo Maven found in PATH.
 )
@@ -178,3 +186,4 @@ echo Only EXE and JRE remain, target cleaned!
 echo File created in: %TARGET_DIR%\%OUTPUT_NAME%.exe
 echo ===========================================
 pause
+
