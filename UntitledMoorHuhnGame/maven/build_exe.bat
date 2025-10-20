@@ -37,52 +37,62 @@ REM --- MAVEN CHECK / AUTO-INSTALL ---
 where mvn >nul 2>nul
 if errorlevel 1 (
     echo Maven not found!
+
     set "MAVEN_VERSION=3.9.11"
     set "MAVEN_DIR=%CD%\tools\maven"
-    set "MAVEN_ZIP=%CD%\apache-maven-%MAVEN_VERSION%-bin.zip"
+    set "MAVEN_ZIP=%CD%\tools\apache-maven-%MAVEN_VERSION%-bin.zip"
     set "MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
+    set "MAVEN_OFFLINE=%MAVEN_DIR%\offline"
 
     if not exist tools mkdir tools
 
-    echo Downloading Maven...
-    if defined DL_OUT (
-        powershell -Command "Invoke-WebRequest -Uri '%MAVEN_URL%' -OutFile '%MAVEN_ZIP%'"
-    ) else (
-        curl -L -o "%MAVEN_ZIP%" "%MAVEN_URL%"
-    )
-
-    if errorlevel 1 (
-        echo Failed to download Maven from main mirror. Trying backup...
-        set "MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
+    REM --- Attempt download if offline copy doesn't exist ---
+    if not exist "!MAVEN_OFFLINE!\mvn.cmd" (
+        echo Downloading Maven...
         if defined DL_OUT (
-            powershell -Command "Invoke-WebRequest -Uri '%MAVEN_URL%' -OutFile '%MAVEN_ZIP%'"
+            powershell -Command "Invoke-WebRequest -Uri '!MAVEN_URL!' -OutFile '!MAVEN_ZIP!'"
         ) else (
-            curl -L -o "%MAVEN_ZIP%" "%MAVEN_URL%"
+            curl -L -o "!MAVEN_ZIP!" "!MAVEN_URL!"
         )
+
         if errorlevel 1 (
-            echo Still failed to download Maven.
-            pause
-            exit /b
+            echo Failed to download Maven from main mirror. Trying backup...
+            set "MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
+            if defined DL_OUT (
+                powershell -Command "Invoke-WebRequest -Uri '!MAVEN_URL!' -OutFile '!MAVEN_ZIP!'"
+            ) else (
+                curl -L -o "!MAVEN_ZIP!" "!MAVEN_URL!"
+            )
+            if errorlevel 1 (
+                echo Still failed to download Maven. Checking offline fallback...
+                if exist "!MAVEN_OFFLINE!\mvn.cmd" (
+                    echo Using offline Maven copy.
+                    set "MAVEN_HOME=!MAVEN_OFFLINE!"
+                    set "PATH=!MAVEN_HOME!\bin;!PATH!"
+                    goto MavenReady
+                )
+                echo No offline Maven available. Exiting.
+                pause
+                exit /b
+            )
         )
     )
 
     echo Extracting Maven...
-    powershell -Command "Expand-Archive -LiteralPath '%MAVEN_ZIP%' -DestinationPath 'tools' -Force"
+    powershell -Command "Expand-Archive -LiteralPath '!MAVEN_ZIP!' -DestinationPath 'tools' -Force"
 
-    if not exist "tools\apache-maven-%MAVEN_VERSION%\bin\mvn.cmd" (
-        echo Maven extraction failed!
-        pause
-        exit /b
-    )
-
-    del "%MAVEN_ZIP%"
+    del "!MAVEN_ZIP!"
     rename "tools\apache-maven-%MAVEN_VERSION%" "maven"
+    mkdir "!MAVEN_OFFLINE!" 2>nul
+    xcopy /s /y "tools\maven\*" "!MAVEN_OFFLINE!\" >nul
+
     set "MAVEN_HOME=%CD%\tools\maven"
     set "PATH=%MAVEN_HOME%\bin;%PATH%"
     echo Maven installed locally in: %MAVEN_HOME%
 ) else (
     echo Maven found in PATH.
 )
+:MavenReady
 
 REM --- REMOVE OLD BUNDLED JRE ---
 if exist "%BUNDLED_JRE%" (
@@ -212,7 +222,3 @@ echo Only EXE and JRE remain, target cleaned!
 echo File created in: %TARGET_DIR%\%OUTPUT_NAME%.exe
 echo ===========================================
 pause
-
-
-
-
