@@ -33,24 +33,43 @@ if errorlevel 1 (
     set "DL_OUT="
 )
 
-REM --- MAVEN CHECK / AUTO-INSTALL ---
+REM --- MAVEN CHECK ---
 where mvn >nul 2>nul
 if errorlevel 1 (
-    echo Maven not found! Downloading and installing...
+    echo Maven not found! Attempting to install Maven...
 
-    set "MAVEN_VERSION=3.9.11"
-    set "MAVEN_DIR=tools\maven"
-    set "MAVEN_ZIP=maven.zip"
-    set "MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
-    set "MAVEN_BACKUP_URL=https://archive.apache.org/dist/maven/maven-3/%MAVEN_VERSION%/binaries/apache-maven-%MAVEN_VERSION%-bin.zip"
+    REM --- CHECK IF SCRIPT IS RUN AS ADMIN ---
+    net session >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo This script requires administrative privileges.
 
-    if not exist tools mkdir tools
+        REM Only restart as admin if not already elevated
+        if "%~1" neq "elevated" (
+            echo Attempting to restart as administrator...
+            powershell -Command "Start-Process cmd -ArgumentList '/c ""%~f0 elevated""' -Verb RunAs"
+            exit /b
+        ) else (
+            echo Already running as admin, continuing...
+        )
+    ) else (
+        echo Already running as admin, continuing...
+    )
 
+REM --- DOWNLOAD AND INSTALL MAVEN ---
     echo Downloading Maven...
-    %DL_CMD% "!MAVEN_URL!" %DL_OUT% "!MAVEN_ZIP!"
+    if defined DL_OUT (
+        powershell -Command "Invoke-WebRequest -Uri 'https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip' -OutFile 'apache-maven-3.9.11-bin.zip'"
+    ) else (
+        curl -L -o "apache-maven-3.9.11-bin.zip" "https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip"
+    )
+
     if errorlevel 1 (
         echo Failed to download Maven from main mirror. Trying backup...
-        %DL_CMD% "!MAVEN_BACKUP_URL!" %DL_OUT% "!MAVEN_ZIP!"
+        if defined DL_OUT (
+            powershell -Command "Invoke-WebRequest -Uri 'https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip' -OutFile 'apache-maven-3.9.11-bin.zip'"
+        ) else (
+            curl -L -o "apache-maven-3.9.11-bin.zip" "https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip"
+        )
         if errorlevel 1 (
             echo Failed to download Maven from backup mirror!
             pause
@@ -59,20 +78,31 @@ if errorlevel 1 (
     )
 
     echo Extracting Maven...
-    powershell -Command "Expand-Archive -LiteralPath '!MAVEN_ZIP!' -DestinationPath 'tools' -Force"
+    powershell -Command "Expand-Archive -LiteralPath 'apache-maven-3.9.11-bin.zip' -DestinationPath 'C:\Program Files\Apache\Maven' -Force"
 
-    if exist "tools\apache-maven-%MAVEN_VERSION%" (
-        move "tools\apache-maven-%MAVEN_VERSION" "!MAVEN_DIR!" >nul
+    if errorlevel 1 (
+        echo Failed to extract Maven!
+        pause
+        exit /b
     )
 
-    del "!MAVEN_ZIP!"
-    set "MAVEN_HOME=%CD%\!MAVEN_DIR!"
+    del "apache-maven-3.9.11-bin.zip"
+    set "MAVEN_HOME=C:\Program Files\Apache\Maven\apache-maven-3.9.11"
     set "PATH=%MAVEN_HOME%\bin;%PATH%"
-    echo Maven installed locally in: %MAVEN_HOME%
+
+    REM --- Verify Maven Installation ---
+    where mvn >nul 2>nul
+    if errorlevel 1 (
+        echo Maven installation failed or not found in PATH after installation!
+        echo Please check the installation at %MAVEN_HOME% or install Maven manually.
+        pause
+        exit /b
+    )
+    echo Maven installed successfully at: %MAVEN_HOME%
+    cd /d "%~dp0"
 ) else (
     echo Maven found in PATH.
 )
-:MavenReady
 
 REM --- REMOVE OLD BUNDLED JRE ---
 if exist "%BUNDLED_JRE%" (
