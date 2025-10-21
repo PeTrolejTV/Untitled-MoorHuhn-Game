@@ -177,6 +177,7 @@ And somewhere, a chicken is plotting its revenge — watch your back!
 
 3. **Run the game**
    - To **build an EXE** → double-click `build_exe.bat`
-   - Wait some time till everything downloads and builds the game
+   - If **Maven** isn’t installed, the script will request **admin rights** to install it in `C:\Program Files\Apache\Maven`
+   - Wait some time till everything downloads and builds the exe
    - Press any key in the Command Prompt or just close it
    - To **Play** the game → open the newly created folder `target` and double-click on `UntitledMoorHuhnGame.exe`
