@@ -42,8 +42,6 @@ if errorlevel 1 (
     net session >nul 2>&1
     if %errorlevel% neq 0 (
         echo This script requires administrative privileges.
-
-        REM Only restart as admin if not already elevated
         if "%~1" neq "elevated" (
             echo Attempting to restart as administrator...
             powershell -Command "Start-Process cmd -ArgumentList '/c ""%~f0 elevated""' -Verb RunAs"
@@ -55,7 +53,7 @@ if errorlevel 1 (
         echo Already running as admin, continuing...
     )
 
-REM --- DOWNLOAD AND INSTALL MAVEN ---
+    REM --- DOWNLOAD AND INSTALL MAVEN ---
     echo Downloading Maven...
     if defined DL_OUT (
         powershell -Command "Invoke-WebRequest -Uri 'https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip' -OutFile 'apache-maven-3.9.11-bin.zip'"
@@ -87,21 +85,16 @@ REM --- DOWNLOAD AND INSTALL MAVEN ---
     )
 
     del "apache-maven-3.9.11-bin.zip"
-    set "MAVEN_HOME=C:\Program Files\Apache\Maven\apache-maven-3.9.11"
-    set "PATH=%MAVEN_HOME%\bin;%PATH%"
 
-    REM --- Verify Maven Installation ---
-    where mvn >nul 2>nul
-    if errorlevel 1 (
-        echo Maven installation failed or not found in PATH after installation!
-        echo Please check the installation at %MAVEN_HOME% or install Maven manually.
-        pause
-        exit /b
-    )
+    REM --- Use full path to Maven ---
+    set "MAVEN_HOME=C:\Program Files\Apache\Maven\apache-maven-3.9.11"
+    set "MVN_EXE=%MAVEN_HOME%\bin\mvn.cmd"
+
     echo Maven installed successfully at: %MAVEN_HOME%
     cd /d "%~dp0"
 ) else (
     echo Maven found in PATH.
+    set "MVN_EXE=mvn"
 )
 
 REM --- REMOVE OLD BUNDLED JRE ---
