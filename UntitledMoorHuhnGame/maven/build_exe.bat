@@ -88,12 +88,26 @@ if errorlevel 1 (
 
     REM --- Use full path to Maven ---
     set "MAVEN_HOME=C:\Program Files\Apache\Maven\apache-maven-3.9.11"
+    set "PATH=%MAVEN_HOME%\bin;%PATH%"
     set "MVN_EXE=%MAVEN_HOME%\bin\mvn.cmd"
 
     echo Maven installed successfully at: %MAVEN_HOME%
     cd /d "%~dp0"
 ) else (
-    echo Maven found in PATH.
+    REM --- MAVEN FOUND ---
+    if "%MAVEN_HOME%"=="%MAVEN_HOME%" (
+        REM Means MAVEN_HOME is not defined, try to detect it
+        for /f "delims=" %%a in ('where mvn') do (
+            set "MVN_PATH=%%a"
+        )
+        for %%a in ("%MVN_PATH%") do set "MAVEN_HOME=%%~dpa.."
+        set "MAVEN_HOME=%MAVEN_HOME:~0,-1%"
+        echo Detected Maven home at: %MAVEN_HOME%
+    ) else (
+        echo MAVEN_HOME found: %MAVEN_HOME%
+    )
+
+    set "PATH=%MAVEN_HOME%\bin;%PATH%"
     set "MVN_EXE=mvn"
 )
 
