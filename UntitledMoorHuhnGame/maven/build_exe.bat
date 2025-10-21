@@ -86,14 +86,16 @@ if errorlevel 1 (
 
     del "apache-maven-3.9.11-bin.zip"
 
-    REM --- SET SYSTEM ENVIRONMENT VARIABLES ---
+    REM --- SET SYSTEM ENVIRONMENT VARIABLES (SAFE PATH FIX) ---
     echo Setting MAVEN_HOME and updating PATH system-wide...
     set "MAVEN_HOME=C:\Program Files\Apache\Maven\apache-maven-3.9.11"
     powershell -Command "[Environment]::SetEnvironmentVariable('MAVEN_HOME','C:\Program Files\Apache\Maven','Machine')"
-    powershell -Command "$envPath=[Environment]::GetEnvironmentVariable('Path','Machine'); if(-not($envPath -like '*%MAVEN_HOME%\bin*')){[Environment]::SetEnvironmentVariable('Path',$envPath + ';%MAVEN_HOME%\bin','Machine')}"
+
+    REM --- SAFE PATH FIX (avoids 1024 char truncation) ---
+    powershell -Command "$envVar = [Environment]::GetEnvironmentVariable('Path','Machine'); if(-not($envVar -like '*C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin*')) { [Environment]::SetEnvironmentVariable('Path', $envVar + ';C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin', 'Machine'); Write-Host 'Maven path added system-wide.' } else { Write-Host 'Maven path already exists.' }"
 
     REM --- APPLY FOR CURRENT SESSION TOO ---
-    setx MAVEN_HOME "C:\Program Files\Apache\Maven"
+    setx MAVEN_HOME "C:\Program Files\Apache\Maven" >nul
     setx PATH "%PATH%;C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin" >nul
 
     set "PATH=C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin;%PATH%"
