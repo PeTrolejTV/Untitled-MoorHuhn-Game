@@ -86,27 +86,32 @@ if errorlevel 1 (
 
     del "apache-maven-3.9.11-bin.zip"
 
-    REM --- Use full path to Maven ---
+    REM --- SET SYSTEM ENVIRONMENT VARIABLES ---
+    echo Setting MAVEN_HOME and updating PATH system-wide...
     set "MAVEN_HOME=C:\Program Files\Apache\Maven\apache-maven-3.9.11"
-    set "PATH=%MAVEN_HOME%\bin;%PATH%"
-    set "MVN_EXE=%MAVEN_HOME%\bin\mvn.cmd"
+    powershell -Command "[Environment]::SetEnvironmentVariable('MAVEN_HOME','C:\Program Files\Apache\Maven','Machine')"
+    powershell -Command "$envPath=[Environment]::GetEnvironmentVariable('Path','Machine'); if(-not($envPath -like '*%MAVEN_HOME%\bin*')){[Environment]::SetEnvironmentVariable('Path',$envPath + ';%MAVEN_HOME%\bin','Machine')}"
 
-    echo Maven installed successfully at: %MAVEN_HOME%
+    REM --- APPLY FOR CURRENT SESSION TOO ---
+    setx MAVEN_HOME "C:\Program Files\Apache\Maven"
+    setx PATH "%PATH%;C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin" >nul
+
+    set "PATH=C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin;%PATH%"
+    set "MVN_EXE=C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin\mvn.cmd"
+
+    echo Maven installed successfully and system variables updated.
     cd /d "%~dp0"
 ) else (
-    REM --- MAVEN FOUND ---
+    echo Maven found in PATH.
     if "%MAVEN_HOME%"=="%MAVEN_HOME%" (
-        REM Means MAVEN_HOME is not defined, try to detect it
-        for /f "delims=" %%a in ('where mvn') do (
-            set "MVN_PATH=%%a"
-        )
+        echo MAVEN_HOME not defined, attempting to set it automatically...
+        for /f "delims=" %%a in ('where mvn') do set "MVN_PATH=%%a"
         for %%a in ("%MVN_PATH%") do set "MAVEN_HOME=%%~dpa.."
-        set "MAVEN_HOME=%MAVEN_HOME:~0,-1%"
-        echo Detected Maven home at: %MAVEN_HOME%
+        powershell -Command "[Environment]::SetEnvironmentVariable('MAVEN_HOME','%MAVEN_HOME%','Machine')"
+        echo MAVEN_HOME was missing but is now set to: %MAVEN_HOME%
     ) else (
         echo MAVEN_HOME found: %MAVEN_HOME%
     )
-
     set "PATH=%MAVEN_HOME%\bin;%PATH%"
     set "MVN_EXE=mvn"
 )
