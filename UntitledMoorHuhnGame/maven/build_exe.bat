@@ -36,24 +36,9 @@ if errorlevel 1 (
 REM --- MAVEN CHECK ---
 where mvn >nul 2>nul
 if errorlevel 1 (
-    echo Maven not found! Attempting to install Maven...
+    echo Maven not found! Attempting to install Maven locally...
 
-    REM --- CHECK IF SCRIPT IS RUN AS ADMIN ---
-    net session >nul 2>&1
-    if %errorlevel% neq 0 (
-        echo This script requires administrative privileges.
-        if "%~1" neq "elevated" (
-            echo Attempting to restart as administrator...
-            powershell -Command "Start-Process cmd -ArgumentList '/c ""%~f0 elevated""' -Verb RunAs"
-            exit /b
-        ) else (
-            echo Already running as admin, continuing...
-        )
-    ) else (
-        echo Already running as admin, continuing...
-    )
-
-    REM --- DOWNLOAD AND INSTALL MAVEN ---
+    REM --- DOWNLOAD AND INSTALL MAVEN LOCALLY ---
     echo Downloading Maven...
     if defined DL_OUT (
         powershell -Command "Invoke-WebRequest -Uri 'https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip' -OutFile 'apache-maven-3.9.11-bin.zip'"
@@ -75,8 +60,12 @@ if errorlevel 1 (
         )
     )
 
-    echo Extracting Maven...
-    powershell -Command "Expand-Archive -LiteralPath 'apache-maven-3.9.11-bin.zip' -DestinationPath 'C:\Program Files\Apache\Maven' -Force"
+    set "MAVEN_INSTALL_DIR=maven"
+    echo Debug: MAVEN_INSTALL_DIR set to !MAVEN_INSTALL_DIR!
+    if not exist "!MAVEN_INSTALL_DIR!" mkdir "!MAVEN_INSTALL_DIR!"
+
+    echo Extracting Maven locally...
+    powershell -Command "Expand-Archive -LiteralPath 'apache-maven-3.9.11-bin.zip' -DestinationPath '!MAVEN_INSTALL_DIR!' -Force"
 
     if errorlevel 1 (
         echo Failed to extract Maven!
@@ -86,33 +75,24 @@ if errorlevel 1 (
 
     del "apache-maven-3.9.11-bin.zip"
 
-    REM --- SET SYSTEM ENVIRONMENT VARIABLES (SAFE PATH FIX) ---
-    echo Setting MAVEN_HOME and updating PATH system-wide...
-    set "MAVEN_HOME=C:\Program Files\Apache\Maven\apache-maven-3.9.11"
-    powershell -Command "[Environment]::SetEnvironmentVariable('MAVEN_HOME','C:\Program Files\Apache\Maven','Machine')"
+    REM --- SET TEMPORARY ENVIRONMENT VARIABLES FOR THIS SESSION ONLY ---
+    echo Setting temporary MAVEN_HOME and updating PATH for this session...
+    set "MAVEN_HOME=!MAVEN_INSTALL_DIR!\apache-maven-3.9.11"
+    set "PATH=!MAVEN_HOME!\bin;%PATH%"
+    set "MVN_EXE=!MAVEN_HOME!\bin\mvn.cmd"
 
-    REM --- SAFE PATH FIX (avoids 1024 char truncation) ---
-    powershell -Command "$envVar = [Environment]::GetEnvironmentVariable('Path','Machine'); if(-not($envVar -like '*C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin*')) { [Environment]::SetEnvironmentVariable('Path', $envVar + ';C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin', 'Machine'); Write-Host 'Maven path added system-wide.' } else { Write-Host 'Maven path already exists.' }"
+    set "INSTALLED_MAVEN=true"  REM Flag to remove local Maven after build (add removal in cleanup section: if defined INSTALLED_MAVEN rmdir /s /q "%MAVEN_INSTALL_DIR%")
 
-    REM --- APPLY FOR CURRENT SESSION TOO ---
-    setx MAVEN_HOME "C:\Program Files\Apache\Maven" >nul
-    setx PATH "%PATH%;C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin" >nul
-
-    set "PATH=C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin;%PATH%"
-    set "MVN_EXE=C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin\mvn.cmd"
-
-    echo Maven installed successfully and system variables updated.
-    cd /d "%~dp0"
+    echo Maven installed locally and variables set for this session.
 ) else (
     echo Maven found in PATH.
-    if "%MAVEN_HOME%"=="%MAVEN_HOME%" (
-        echo MAVEN_HOME not defined, attempting to set it automatically...
+    if defined MAVEN_HOME (
+        echo MAVEN_HOME found: %MAVEN_HOME%
+    ) else (
+        echo MAVEN_HOME not defined, attempting to set it automatically for this session...
         for /f "delims=" %%a in ('where mvn') do set "MVN_PATH=%%a"
         for %%a in ("%MVN_PATH%") do set "MAVEN_HOME=%%~dpa.."
-        powershell -Command "[Environment]::SetEnvironmentVariable('MAVEN_HOME','%MAVEN_HOME%','Machine')"
-        echo MAVEN_HOME was missing but is now set to: %MAVEN_HOME%
-    ) else (
-        echo MAVEN_HOME found: %MAVEN_HOME%
+        echo MAVEN_HOME set for this session to: %MAVEN_HOME%
     )
     set "PATH=%MAVEN_HOME%\bin;%PATH%"
     set "MVN_EXE=mvn"
